@@ -20,7 +20,9 @@ import java.util.List;
 
 public class FragmentTabs extends Fragment implements IFragmentRefreshable, IFragmentSearchable {
     private String itsAdressWWWTopClick = "https://www.radio-browser.info/webservice/json/stations/topclick/100";
+
     private String itsAdressWWWTopVote = "https://www.radio-browser.info/webservice/json/stations/topvote/100";
+
     private String itsAdressWWWChangedLately = "https://www.radio-browser.info/webservice/json/stations/lastchange/100";
     private String itsAdressWWWCurrentlyHeard = "https://www.radio-browser.info/webservice/json/stations/lastclick/100";
     private String itsAdressWWWTags = "https://www.radio-browser.info/webservice/json/tags";
@@ -33,7 +35,9 @@ public class FragmentTabs extends Fragment implements IFragmentRefreshable, IFra
     FragmentBase[] fragments = new FragmentBase[8];
     String[] adresses = new String[]{
             itsAdressWWWTopClick,
+
             itsAdressWWWTopVote,
+
             itsAdressWWWChangedLately,
             itsAdressWWWCurrentlyHeard,
             itsAdressWWWTags,
@@ -88,7 +92,9 @@ public class FragmentTabs extends Fragment implements IFragmentRefreshable, IFra
         FragmentManager m = getChildFragmentManager();
         ViewPagerAdapter adapter = new ViewPagerAdapter(m);
         adapter.addFragment(fragments[0], R.string.action_top_click);
+
         adapter.addFragment(fragments[1], R.string.action_top_vote);
+
         adapter.addFragment(fragments[2], R.string.action_changed_lately);
         adapter.addFragment(fragments[3], R.string.action_currently_playing);
         adapter.addFragment(fragments[4], R.string.action_tags);

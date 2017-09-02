@@ -10,21 +10,25 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="15sp"
-            android:text="ServerName"
-            android:textStyle="italic"
-            android:id="@+id/stats_name"/>
 
         <TextView
+            android:id="@+id/stats_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="30sp"
-            android:text="abc"
-            android:textStyle="bold"
-            android:id="@+id/stats_value" />
+            android:layout_marginLeft="100dp"
+            android:text="ServerName"
+            android:textAppearance="@style/TextAppearance.AppCompat"
+            android:textColor="?attr/actionModeSplitBackground"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/stats_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="100dp"
+            android:text="@string/abc"
+            android:textAppearance="@style/TextAppearance.AppCompat"
+            android:textSize="24sp" />
     </LinearLayout>
 
 </LinearLayout>

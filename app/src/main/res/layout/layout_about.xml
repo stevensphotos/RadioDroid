@@ -10,7 +10,7 @@
         android:textSize="15sp"
         android:text="@string/about_text"
         android:textColor="#000"
-        android:layout_margin="10dp"
+        android:layout_margin="30dp"
         android:elegantTextHeight="false"
         android:linksClickable="true"
         android:typeface="normal"

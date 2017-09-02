@@ -90,7 +90,8 @@
     <string name="image_button_record">Nauhoita</string>
     <string name="image_button_delete">Poista</string>
     <string name="image_button_more">Lisää</string>
-    
+    <string name="abc">abc</string>
+
     <string-array name="weekdays">        
         <item>S</item>        
         <item>M</item>        

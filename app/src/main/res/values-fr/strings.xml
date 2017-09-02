@@ -17,7 +17,7 @@
     <string name="action_tags">Tags</string>
     <string name="action_countries">Pays</string>
     <string name="action_languages">Langues</string>
-    <string name="error_station_load">Impossible de se connecter à la station</string>
+    <string name="error_station_load">Connexion impossible. Veuillez activer le WiFi ou les données mobiles</string>
     <string name="error_list_update">Impossible de se connecter au navigateur du serveur radio</string>
 
     <string name="share_action">Partager le lien de la station avec...</string>
@@ -37,31 +37,31 @@
     <string name="detail_unstar">Supprimer</string>
     <string name="progress_loading">Chargement...</string>
 
-    <string name="sleep_timer" formatted="true">Temps de sommeil : %1$02d:%2$02d</string>
+    <string name="sleep_timer" formatted="true">Arrêt auto : %1$02d:%2$02d</string>
     <string name="nav_item_add_sleep">+15 mins</string>
 
     <string name="settings_general">Général</string>
-    <string name="settings_single_use_tags">Montrer les tags uniques</string>
-    <string name="settings_single_use_tags_desc_off">Les tags uniques ne seront pas affichés</string>
-    <string name="settings_single_use_tags_desc_on">Les tags uniques seront affichés</string>
+    <string name="settings_single_use_tags">Afficher les tags uniques</string>
+    <string name="settings_single_use_tags_desc_off">Ne pas afficher les tags uniques</string>
+    <string name="settings_single_use_tags_desc_on">Afficher les tags uniques</string>
 
     <string name="settings_show_broken">Stations défectueuses</string>
-    <string name="settings_show_broken_on">Afficher les stations défectueuses dans les listes de stations</string>
-    <string name="settings_show_broken_off">Ne pas afficher les stations défectueuses dans les listes de stations</string>
+    <string name="settings_show_broken_on">Afficher les stations défectueuses dans les listes</string>
+    <string name="settings_show_broken_off">Ne pas afficher les stations défectueuses</string>
     
-    <string name="settings_starred_at_startup">Favoris au démarrage</string>
-    <string name="settings_starred_at_startup_on">Montre les stations en favoris au démarrage de RadioDroid</string>
-    <string name="settings_starred_at_startup_off">Montre toutes les stations au démarrage de RadioDroid</string>
+    <string name="settings_starred_at_startup">Démarrage de RadioDroid</string>
+    <string name="settings_starred_at_startup_on">Afficher les stations favorites</string>
+    <string name="settings_starred_at_startup_off">Afficher toutes les stations</string>
     
     <string name="settings_alarm">Alarme</string>
     <string name="settings_alarm_external">Ouverture avec une application externe</string>
     <string name="settings_alarm_external_desc">Jouer l\'alarme avec l\'application externe par défaut</string>
     <string name="settings_alarm_audio_player">Lecteur audio</string>
-    <string name="settings_alarm_sleep_timer">Minuterie pour le sommeil</string>
+    <string name="settings_alarm_sleep_timer">Minuterie</string>
     <string name="settings_alarm_sleep_timer_desc">Stopper la lecture après %1$s minutes</string>
     <string name="settings_play">Lecteur</string>
-    <string name="settings_play_external">Ouverture avec une application externe</string>
-    <string name="settings_play_external_desc">Lire les radios avec un lecteur externe</string>
+    <string name="settings_play_external">Ouvrir avec une autre application</string>
+    <string name="settings_play_external_desc">Lecteur externe</string>
 
     <string name="notify_start_proxy">Démarrage du proxy..</string>
     <string name="notify_stop_player">Stopper l\'ancien lecteur...</string>
@@ -99,4 +99,24 @@
         <item>V</item>
         <item>S</item>
     </string-array>
+    <string name="refresh">Actualiser</string>
+    <string name="no_wifi_connection">Utiliser les données mobiles ?</string>
+    <string name="settings_warn_no_wifi_off">Commutation automatique WiFi données mobiles</string>
+    <string name="settings_warn_no_wifi_on">Avertissement données mobiles</string>
+    <string name="settings_warn_no_wifi">Avertissement en cas d\'utilisation données mobiles</string>
+    <string name="no_wifi_title">Pas de connexion WiFi</string>
+    <string name="notify_paused">En pause</string>
+    <string name="settings_load_icons">Afficher les vignettes des stations</string>
+    <string name="settings_load_icons_off">Desactiver le téléchargement des vignettes</string>
+    <string name="settings_load_icons_on">Télécharger les vignettes des stations</string>
+    <string name="settings_mpd">Lecteur de musique en arrière-plan</string>
+    <string name="settings_mpd_hostname">Nom d\'hôte</string>
+    <string name="settings_mpd_port">Port</string>
+    <string name="action_mpd_nok">MPD déconnecté</string>
+    <string name="action_mpd_ok">MPD connecté</string>
+    <string name="abc">abc</string>
+    <string name="stations">stations</string>
+    <string name="stations_broken">Indisponibles</string>
+    <string name="languages">Langues</string>
+    <string name="countries">Pays</string>
 </resources>

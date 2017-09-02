@@ -1,26 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+<PreferenceScreen xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <PreferenceCategory
         android:title="@string/settings_general">
 
         <CheckBoxPreference
-            android:key="single_use_tags"
-            android:title="@string/settings_single_use_tags"
-            android:summaryOn="@string/settings_single_use_tags_desc_on"
-            android:summaryOff="@string/settings_single_use_tags_desc_off" />
-
-        <CheckBoxPreference
             android:key="show_broken"
-            android:title="@string/settings_show_broken"
+            android:summaryOff="@string/settings_show_broken_off"
             android:summaryOn="@string/settings_show_broken_on"
-            android:summaryOff="@string/settings_show_broken_off" />
+            android:title="@string/settings_show_broken" />
 
         <CheckBoxPreference
             android:key="starred_at_startup"
-            android:title="@string/settings_starred_at_startup"
+            android:summaryOff="@string/settings_starred_at_startup_off"
             android:summaryOn="@string/settings_starred_at_startup_on"
-            android:summaryOff="@string/settings_starred_at_startup_off" />
+            android:title="@string/settings_starred_at_startup" />
 
         <CheckBoxPreference
             android:key="load_icons"
@@ -30,19 +25,18 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory
-        android:title="@string/settings_play">
+    <PreferenceCategory android:title="@string/settings_play">
 
         <CheckBoxPreference
             android:key="play_external"
-            android:title="@string/settings_play_external"
-            android:summary="@string/settings_play_external_desc" />
+            android:summary="@string/settings_play_external_desc"
+            android:title="@string/settings_play_external" />
 
         <CheckBoxPreference
-                android:key="warn_no_wifi"
-                android:title="@string/settings_warn_no_wifi"
-                android:summaryOn="@string/settings_warn_no_wifi_on"
-                android:summaryOff="@string/settings_warn_no_wifi_off" />
+            android:key="warn_no_wifi"
+            android:summaryOff="@string/settings_warn_no_wifi_off"
+            android:summaryOn="@string/settings_warn_no_wifi_on"
+            android:title="@string/settings_warn_no_wifi" />
 
     </PreferenceCategory>
 

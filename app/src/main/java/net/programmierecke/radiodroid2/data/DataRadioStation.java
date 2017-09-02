@@ -30,7 +30,9 @@ public class DataRadioStation {
 	public String TagsAll;
 	public String Language;
 	public int ClickCount;
+
 	public int Votes;
+
 	public int Bitrate;
 	public String Codec;
 	public boolean Working = true;
@@ -133,7 +135,7 @@ public class DataRadioStation {
 					aStation.Name = anObject.getString("name");
 					//aStation.StreamUrl = anObject.getString("url");
 					aStation.Votes = anObject.getInt("votes");
-					aStation.HomePageUrl = anObject.getString("homepage");
+                    aStation.HomePageUrl = anObject.getString("homepage");
 					aStation.TagsAll = anObject.getString("tags");
 					aStation.Country = anObject.getString("country");
 					aStation.State = anObject.getString("state");

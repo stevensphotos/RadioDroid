@@ -121,4 +121,12 @@
 
     <string name="no_wifi_title">No WiFi (WLAN) connection</string>
     <string name="no_wifi_connection">No WiFi (WLAN) connection when starting %1$s. Press \'Ok\' to continue.</string>
+    <string name="abc">abc</string>
+    <string name="stations">stations</string>
+    <string name="stations_broken">Broken stations</string>
+    <string name="tags">Tags</string>
+    <string name="clicks_last_hour">Clicks last hour</string>
+    <string name="clicks_last_day">Clicks last day</string>
+    <string name="languages">Languages</string>
+    <string name="countries">Countries</string>
 </resources>

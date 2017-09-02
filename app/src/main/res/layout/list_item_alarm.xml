@@ -17,11 +17,12 @@
             android:id="@+id/textViewTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="40sp"
-            android:height="50dp"
             android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
             android:layout_marginTop="15dp"
-            android:layout_marginRight="15dp" />
+            android:height="50dp"
+            android:textSize="40sp"
+            android:typeface="normal" />
 
         <TextView
             android:id="@+id/textViewStation"
@@ -44,36 +45,36 @@
     </LinearLayout>
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
         <android.support.v7.widget.SwitchCompat
-            android:textSize="20sp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
             android:id="@+id/switch1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="15dp"
             android:height="10dp"
-            android:layout_margin="15dp" />
+            android:text=""
+            android:textSize="20sp" />
 
         <ImageButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:id="@+id/buttonDelete"
-            android:src="@drawable/ic_delete_black_24dp"
-            android:layout_gravity="center"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/image_button_delete" />
-
-        <ImageButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:id="@+id/checkboxRepeating"
-            android:src="@drawable/ic_refresh_black_24dp"
             android:layout_gravity="center"
             android:background="@android:color/transparent"
-            android:layout_margin="20dp" />
+            android:contentDescription="@string/image_button_delete"
+            android:src="@drawable/ic_delete_black_24dp" />
+
+        <ImageButton
+            android:id="@+id/checkboxRepeating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="20dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_refresh_black_24dp" />
 
 
     </LinearLayout>
