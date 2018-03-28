@@ -1,6 +1,6 @@
 package net.programmierecke.radiodroid2;
 
-import android.content.Intent;
+import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -17,6 +17,7 @@ import net.programmierecke.radiodroid2.interfaces.IFragmentRefreshable;
 
 public class FragmentServerInfo extends Fragment implements IFragmentRefreshable {
     private ItemAdapterStatistics itemAdapterStatistics;
+    private ProgressDialog itsProgressLoading;
 
     @Nullable
     @Override
@@ -36,17 +37,16 @@ public class FragmentServerInfo extends Fragment implements IFragmentRefreshable
     }
 
     void Download(final boolean forceUpdate){
-        getContext().sendBroadcast(new Intent(ActivityMain.ACTION_SHOW_LOADING));
+        itsProgressLoading = ProgressDialog.show(getActivity(), "", getActivity().getString(R.string.progress_loading));
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
-                return Utils.downloadFeed(getActivity(), RadioBrowserServerManager.getWebserviceEndpoint(getActivity(),"json/stats"), forceUpdate, null);
+                return Utils.downloadFeed(getActivity(), "https://www.radio-browser.info/webservice/json/stats", forceUpdate, null);
             }
 
             @Override
             protected void onPostExecute(String result) {
-                if(getContext() != null)
-                    getContext().sendBroadcast(new Intent(ActivityMain.ACTION_HIDE_LOADING));
+                itsProgressLoading.dismiss();
                 if (result != null) {
                     itemAdapterStatistics.clear();
                     DataStatistics[] items = DataStatistics.DecodeJson(result);

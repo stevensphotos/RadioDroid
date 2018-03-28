@@ -3,7 +3,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-<<<<<<< HEAD
     <ListView
         android:id="@+id/listViewStations"
         android:layout_width="match_parent"
@@ -13,13 +12,4 @@
         android:layout_centerHorizontal="true"
         tools:ignore="RtlHardcoded" />
 
-=======
-    <android.support.v7.widget.RecyclerView
-        android:id="@+id/recyclerViewStations"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:scrollbars="vertical" />
->>>>>>> segler-alex/master
 </RelativeLayout>

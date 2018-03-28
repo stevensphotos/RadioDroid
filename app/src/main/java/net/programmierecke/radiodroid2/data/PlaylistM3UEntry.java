@@ -53,7 +53,8 @@ public class PlaylistM3UEntry {
             isStreamInfo = true;
             String attributes = header.substring(STREAMINF.length());
             String[] attributesList = attributes.split(",");
-            for (String attr : attributesList) {
+            for (int i = 0; i < attributesList.length; i++) {
+                String attr = attributesList[i];
                 if (attr.startsWith(STREAMINF_BANDWIDTH)) {
                     String paramStr = attr.substring(STREAMINF_BANDWIDTH.length());
                     bitrate = Integer.getInteger(paramStr, -1);

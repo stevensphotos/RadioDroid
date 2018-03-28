@@ -3,6 +3,7 @@ package net.programmierecke.radiodroid2;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -21,11 +22,8 @@ import android.support.v7.preference.PreferenceManager;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import net.programmierecke.radiodroid2.data.DataRadioStation;
 
-import net.programmierecke.radiodroid2.data.MPDServer;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -35,20 +33,17 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class Utils {
-	private static int loadIcons = -1;
+    private static int loadIcons = -1;
 
-	public static String getCacheFile(Context ctx, String theURI) {
-		StringBuilder chaine = new StringBuilder("");
+    public static String getCacheFile(Context ctx, String theURI) {
+		StringBuffer chaine = new StringBuffer("");
 		try{
 			String aFileName = theURI.toLowerCase().replace("http://","");
 			aFileName = aFileName.toLowerCase().replace("https://","");
@@ -68,7 +63,7 @@ public class Utils {
 			if (hours < 1) {
 				FileInputStream aStream = new FileInputStream(file);
 				BufferedReader rd = new BufferedReader(new InputStreamReader(aStream));
-				String line;
+				String line = "";
 				while ((line = rd.readLine()) != null) {
 					chaine.append(line);
 				}
@@ -109,7 +104,7 @@ public class Utils {
 			}
 		}
 
-		StringBuilder chaine = new StringBuilder("");
+		StringBuffer chaine = new StringBuffer("");
 		try{
 			URL url = new URL(theURI);
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
@@ -140,7 +135,7 @@ public class Utils {
 
 			InputStream inputStream = connection.getInputStream();
 			BufferedReader rd = new BufferedReader(new InputStreamReader(inputStream));
-			String line;
+			String line = "";
 			while ((line = rd.readLine()) != null) {
 				chaine.append(line);
 			}
@@ -157,9 +152,9 @@ public class Utils {
 	}
 
 	public static String getRealStationLink(Context ctx, String stationId){
-		String result = Utils.downloadFeed(ctx, RadioBrowserServerManager.getWebserviceEndpoint(ctx, "v2/json/url/" + stationId), true, null);
+		String result = Utils.downloadFeed(ctx, "https://www.radio-browser.info/webservice/v2/json/url/" + stationId, true, null);
 		if (result != null) {
-			JSONObject jsonObj;
+			JSONObject jsonObj = null;
 			try {
 				jsonObj = new JSONObject(result);
 				return jsonObj.getString("url");
@@ -206,7 +201,7 @@ public class Utils {
 	}
 
 	private static void playInternal(final DataRadioStation station, final Context context, final boolean external) {
-        context.sendBroadcast(new Intent(ActivityMain.ACTION_SHOW_LOADING));
+		final ProgressDialog itsProgressLoading = ProgressDialog.show(context, "", context.getResources().getText(R.string.progress_loading));
 		new AsyncTask<Void, Void, String>() {
 			@Override
 			protected String doInBackground(Void... params) {
@@ -215,30 +210,29 @@ public class Utils {
 
 			@Override
 			protected void onPostExecute(String result) {
-                context.sendBroadcast(new Intent(ActivityMain.ACTION_HIDE_LOADING));
+				itsProgressLoading.dismiss();
 
 				if (result != null) {
 					boolean externalActive = false;
 					if (MPDClient.Connected() && MPDClient.Discovered()){
 						MPDClient.Play(result, context);
-						PlayerServiceUtil.saveInfo(result, station.Name, station.ID, station.IconUrl);
 						externalActive = true;
 					}
-					if (CastHandler.isCastSessionAvailable()){
+                    if (CastHandler.isCastSessionAvailable()){
 						if (!externalActive) {
 							PlayerServiceUtil.stop(); // stop internal player and not continue playing
 						}
-						CastHandler.PlayRemote(station.Name, result, station.IconUrl);
+                        CastHandler.PlayRemote(station.Name, result, station.IconUrl);
 						externalActive = true;
-					}
+                    }
 
-					if (!externalActive){
+                    if (!externalActive){
 						if (external){
 							Intent share = new Intent(Intent.ACTION_VIEW);
 							share.setDataAndType(Uri.parse(result), "audio/*");
 							context.startActivity(share);
 						}else {
-							PlayerServiceUtil.play(result, station.Name, station.ID, station.IconUrl);
+							PlayerServiceUtil.play(result, station.Name, station.ID);
 						}
 					}
 				} else {
@@ -250,7 +244,7 @@ public class Utils {
 		}.execute();
 	}
 
-	public static boolean shouldLoadIcons(final Context context) {
+    public static boolean shouldLoadIcons(final Context context) {
 		switch(loadIcons) {
 			case -1:
 				if(PreferenceManager.getDefaultSharedPreferences(context.getApplicationContext()).getBoolean("load_icons", false)) {
@@ -268,34 +262,7 @@ public class Utils {
 		return false;
 	}
 
-	public static String getTheme(final Context context) {
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        return sharedPref.getString("theme_name", context.getResources().getString(R.string.theme_light));
-	}
-
-    public static int getThemeResId(final Context context) {
-        String selectedTheme = getTheme(context);
-	    if(selectedTheme.equals(context.getResources().getString(R.string.theme_dark)))
-            return R.style.MyMaterialTheme_Dark;
-	    else
-	        return R.style.MyMaterialTheme;
-    }
-
-    public static int getTimePickerThemeResId(final Context context) {
-        int theme;
-        if(getThemeResId(context) == R.style.MyMaterialTheme_Dark)
-            theme = R.style.DialogTheme_Dark;
-        else
-            theme = R.style.DialogTheme;
-        return theme;
-    }
-
-    public static boolean useCircularIcons(final Context context) {
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        return sharedPref.getBoolean("circular_icons", false);
-    }
-
-    // Storage Permissions
+	// Storage Permissions
 	public static final int REQUEST_EXTERNAL_STORAGE = 1;
 	private static String[] PERMISSIONS_STORAGE = {
 			Manifest.permission.WRITE_EXTERNAL_STORAGE
@@ -320,17 +287,17 @@ public class Utils {
 
 	public static String getReadableBytes(double bytes){
 		String[] str = new String[]{"B","KB","MB","GB","TB"};
-		for (String aStr : str) {
+		for (int i=0;i<str.length;i++){
 			if (bytes < 1024) {
-				return String.format(Locale.getDefault(), "%1$,.1f %2$s", bytes, aStr);
+				return String.format(Locale.getDefault(), "%1$,.1f %2$s",bytes,str[i]);
 			}
-			bytes = bytes / 1024;
+			bytes = bytes/1024;
 		}
 		return String.format(Locale.getDefault(), "%1$,.1f %2$s",bytes*1024,str[str.length-1]);
 	}
 
-	public static String sanitizeName(String str) {
-		return str.replaceAll("\\W+", "_").replaceAll("^_+", "").replaceAll("_+$", "");
+	public static String sanitizeName(String str){
+		return str.replaceAll("\\W+", "_");
 	}
 
 	public static boolean hasWifiConnection(Context context) {
@@ -338,48 +305,5 @@ public class Utils {
 		NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
 		return mWifi.isConnected();
-	}
-
-	public static List<MPDServer> getMPDServers(Context context) {
-		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-		String serversFromPrefs = sharedPref.getString("mpd_servers", "");
-		Gson gson = new Gson();
-        Type type = new TypeToken<ArrayList<MPDServer>>(){}.getType();
-		List <MPDServer> serversList = gson.fromJson(serversFromPrefs, type);
-		return serversList != null? serversList : new ArrayList<MPDServer>();
-	}
-
-    public static void saveMPDServers(List<MPDServer> servers, Context context) {
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        Gson gson = new Gson();
-        String serversJson = gson.toJson(servers);
-        editor.putString("mpd_servers", serversJson);
-        editor.commit();
-    }
-
-    public static boolean bottomNavigationEnabled(Context context) {
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
-        return sharedPref.getBoolean("bottom_navigation", true);
-    }
-
-    public static String formatStringWithNamedArgs(String format, Map<String, String> args) {
-	    StringBuilder builder = new StringBuilder(format);
-		for (Map.Entry<String, String> entry : args.entrySet()) {
-		    final String key = "${" + entry.getKey() + "}";
-		    int startIdx = 0;
-		    while (true) {
-                final int keyIdx = builder.indexOf(key, startIdx);
-
-                if (keyIdx == -1) {
-                    break;
-                }
-
-                builder.replace(keyIdx, keyIdx + key.length(), entry.getValue());
-                startIdx = keyIdx + entry.getValue().length();
-            }
-		}
-
-		return builder.toString();
 	}
 }

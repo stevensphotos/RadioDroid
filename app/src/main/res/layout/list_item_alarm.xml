@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/LinearLayout1"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:descendantFocusability="blocksDescendants"
-    android:orientation="horizontal">
+    android:orientation="horizontal" >
 
     <LinearLayout
         android:orientation="vertical"
@@ -63,37 +62,20 @@
             android:id="@+id/buttonDelete"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-<<<<<<< HEAD
             android:layout_gravity="center"
             android:background="@android:color/transparent"
             android:contentDescription="@string/image_button_delete"
             android:src="@drawable/ic_delete_black_24dp" />
-=======
-            android:id="@+id/buttonDeleteAlarm"
-            android:tint="?attr/iconsInItemBackgroundColor"
-            app:srcCompat="@drawable/ic_delete_black_24dp"
-            android:layout_gravity="center"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/image_button_delete" />
->>>>>>> segler-alex/master
 
         <ImageButton
             android:id="@+id/checkboxRepeating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-<<<<<<< HEAD
             android:layout_gravity="center"
             android:layout_margin="20dp"
             android:background="@android:color/transparent"
             android:src="@drawable/ic_refresh_black_24dp" />
-=======
-            android:id="@+id/checkboxRepeating"
-            android:tint="?attr/iconsInItemBackgroundColor"
-            app:srcCompat="@drawable/ic_refresh_black_24dp"
-            android:layout_gravity="center"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:layout_margin="20dp" />
->>>>>>> segler-alex/master
+
 
     </LinearLayout>
 

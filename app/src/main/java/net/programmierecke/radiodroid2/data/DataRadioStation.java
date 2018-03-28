@@ -2,6 +2,7 @@ package net.programmierecke.radiodroid2.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -29,11 +30,7 @@ public class DataRadioStation {
 	public String TagsAll;
 	public String Language;
 	public int ClickCount;
-<<<<<<< HEAD
 
-=======
-	public int ClickTrend;
->>>>>>> segler-alex/master
 	public int Votes;
 
 	public int Bitrate;
@@ -46,8 +43,20 @@ public class DataRadioStation {
 		if (!Working){
 			aList.add(ctx.getResources().getString(R.string.station_detail_broken));
 		}
+		if (Hls){
+			aList.add("HLS");
+		}
+		if (Codec != null){
+			if (!Codec.trim().equals("")){
+				aList.add(Codec);
+			}
+		}
 		if (Bitrate > 0){
 			aList.add(ctx.getResources().getString(R.string.station_detail_bitrate, Bitrate));
+		}
+		if (Country != null) {
+			if (!Country.trim().equals(""))
+				aList.add(Country);
 		}
 		if (State != null) {
 			if (!State.trim().equals(""))
@@ -56,6 +65,12 @@ public class DataRadioStation {
 		if (Language != null) {
 			if (!Language.trim().equals(""))
 				aList.add(Language);
+		}
+		if (TagsAll != null) {
+			for (String aPart : TagsAll.split(",")) {
+				if (!aPart.trim().equals(""))
+					aList.add(aPart);
+			}
 		}
 		return TextUtils.join(", ", aList);
 	}
@@ -82,7 +97,6 @@ public class DataRadioStation {
 							aStation.IconUrl = anObject.getString("favicon");
 							aStation.Language = anObject.getString("language");
 							aStation.ClickCount = anObject.getInt("clickcount");
-							aStation.ClickTrend = anObject.getInt("clicktrend");
 							if (anObject.has("bitrate")) {
 								aStation.Bitrate = anObject.getInt("bitrate");
 							}
@@ -128,7 +142,6 @@ public class DataRadioStation {
 					aStation.IconUrl = anObject.getString("favicon");
 					aStation.Language = anObject.getString("language");
 					aStation.ClickCount = anObject.getInt("clickcount");
-					aStation.ClickTrend = anObject.getInt("clicktrend");
 					if (anObject.has(("bitrate"))) {
 						aStation.Bitrate = anObject.getInt("bitrate");
 					}
@@ -160,7 +173,6 @@ public class DataRadioStation {
 			obj.put("tags",TagsAll);
 			obj.put("language",Language);
 			obj.put("clickcount",ClickCount);
-			obj.put("clicktrend",ClickTrend);
 			obj.put("votes",Votes);
 			obj.put("bitrate",""+Bitrate);
 			obj.put("codec",Codec);

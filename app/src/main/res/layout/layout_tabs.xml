@@ -10,7 +10,6 @@
         android:id="@+id/tabs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-<<<<<<< HEAD
         android:background="@color/colorPrimary"
         android:elevation="6dp"
         app:tabGravity="center"
@@ -18,24 +17,11 @@
         app:tabMode="scrollable"
         app:tabSelectedTextColor="@color/windowBackground"
         app:tabTextColor="@color/windowBackground" />
-=======
-        android:background="?attr/colorPrimary"
-        app:tabMode="scrollable"
-        app:tabGravity="fill"
-        app:tabTextColor="@color/windowBackground"
-        app:tabSelectedTextColor="@color/windowBackground"
-        app:tabIndicatorColor="?attr/colorTabUnderline" />
->>>>>>> segler-alex/master
 
     <android.support.v4.view.ViewPager
         android:id="@+id/viewpager"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-<<<<<<< HEAD
         android:layout_marginLeft="20dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-=======
-        android:background="?android:attr/windowBackground"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"  />
->>>>>>> segler-alex/master
 </LinearLayout>

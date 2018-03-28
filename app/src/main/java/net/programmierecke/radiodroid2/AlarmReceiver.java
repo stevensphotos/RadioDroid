@@ -98,8 +98,7 @@ public class AlarmReceiver extends BroadcastReceiver {
             if(BuildConfig.DEBUG) { Log.d(TAG, "Service came online"); }
             itsPlayerService = IPlayerService.Stub.asInterface(binder);
             try {
-                itsPlayerService.SaveInfo(url, station.Name, station.ID, station.IconUrl);
-                itsPlayerService.Play(true);
+                itsPlayerService.Play(url, station.Name, station.ID, true);
                 // default timeout 1 hour
                 itsPlayerService.addTimer(timeout*60);
             } catch (RemoteException e) {

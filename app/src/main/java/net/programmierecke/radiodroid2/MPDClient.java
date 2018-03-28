@@ -1,17 +1,16 @@
 package net.programmierecke.radiodroid2;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.support.v7.preference.PreferenceManager;
 import android.util.Log;
-import net.programmierecke.radiodroid2.data.MPDServer;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.List;
 
 interface IMPDClientStatusChange{
     void changed();
@@ -19,54 +18,36 @@ interface IMPDClientStatusChange{
 
 public class MPDClient {
     static final String TAG = "MPD";
-    public static boolean connected;
-    public static boolean isPlaying;
+    private static boolean connected;
 
     public static int StringToInt(String str, int defaultValue){
         try{
             return Integer.parseInt(str);
         }
         catch (Exception e){
-            Log.e(TAG, "could not parse integer " + str, e);
         }
         return defaultValue;
     }
 
     public static void Connect(IMPDClientStatusChange listener){
         connected = true;
-        if(listener != null)
-            listener.changed();
+        listener.changed();
     }
 
     public static void Disconnect(Context context, IMPDClientStatusChange listener){
         connected = false;
-        isPlaying = false;
-        if(listener != null)
-            listener.changed();
-        // Don't stop playback in that case. User can listen via MPD and via the app
-        // User can stop playback via MPD with pause button
-        //Stop(context);
+        listener.changed();
+        Stop(context);
     }
 
     public static void Play(final String url, final Context context) {
-        final List<MPDServer> servers = Utils.getMPDServers(context);
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+        final String mpd_hostname = sharedPref.getString("mpd_hostname", null);
+        final int mpd_port = StringToInt(sharedPref.getString("mpd_port", "6600"), 6600);
 
         new AsyncTask<Void, Void, Boolean>() {
             @Override
             protected Boolean doInBackground(Void... params) {
-                String mpd_hostname = "";
-                int mpd_port = 0;
-
-                for (MPDServer server: servers) {
-                    if(server.selected) {
-                        mpd_hostname = server.hostname.trim();
-                        mpd_port = server.port;
-                        break;
-                    }
-                }
-                if(mpd_port == 0)
-                    return null;
-
                 return PlayRemoteMPD(mpd_hostname, mpd_port, url);
             }
 
@@ -86,6 +67,8 @@ public class MPDClient {
     }
 
     public static void StartDiscovery(final Context context, final IMPDClientStatusChange listener){
+        final SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+
         if (t == null) {
             discoveryActive = true;
             t = new Thread(new Runnable() {
@@ -93,20 +76,12 @@ public class MPDClient {
                 public void run() {
                     while(discoveryActive){
                         try {
-                            List<MPDServer> servers = Utils.getMPDServers(context);
-                            boolean hasOneOrMoreConnections = false;
-                            for (MPDServer server: servers) {
-                                final String mpd_hostname = server.hostname.trim();
-                                final int mpd_port = server.port;
+                            final String mpd_hostname = sharedPref.getString("mpd_hostname", "").trim();
+                            final int mpd_port = StringToInt(sharedPref.getString("mpd_port", "6600"), 6600);
 
-                                if (!"".equals(mpd_hostname)) {
-                                    boolean isConnected = CheckConnection(mpd_hostname, mpd_port);
-                                    server.connected = isConnected;
-                                    hasOneOrMoreConnections = hasOneOrMoreConnections? hasOneOrMoreConnections : isConnected;
-                                }
+                            if (mpd_hostname != ""){
+                                SetDiscoveredStatus(CheckConnection(mpd_hostname, mpd_port), listener);
                             }
-                            Utils.saveMPDServers(servers, context);
-                            SetDiscoveredStatus(hasOneOrMoreConnections, listener);
                             // check every 5 seconds
                             Thread.sleep(5*1000);
                         } catch (Exception e) {
@@ -124,8 +99,7 @@ public class MPDClient {
     private static void SetDiscoveredStatus(boolean status, IMPDClientStatusChange listener){
         if (status != discovered){
             discovered = status;
-            if(listener != null)
-                listener.changed();
+            listener.changed();
         }
     }
 
@@ -134,11 +108,7 @@ public class MPDClient {
 
         try {
             if(BuildConfig.DEBUG) { Log.d(TAG, "Check connection..."); }
-            Socket s = new Socket();
-            // Timeout for local addresses should be as low as possible. Or you'll be waiting many seconds for a couple of servers if one (or more) of them will be unreachable
-            int timeout = mpd_hostname.startsWith("192.168.") || mpd_hostname.startsWith("127.0.") || mpd_hostname.startsWith("localhost") || mpd_hostname.startsWith("10.") || mpd_hostname.contains(".local")? 500 : 3*1000;
-			// If you'll create the socket with default constructor new Socket(hostname, port) you will get 3 min timeout if the server is unreachable
-			s.connect(new InetSocketAddress(mpd_hostname, mpd_port), timeout);
+            Socket s = new Socket(mpd_hostname, mpd_port);
             BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
             String info = reader.readLine();
@@ -157,32 +127,24 @@ public class MPDClient {
     }
 
 
-    public static void Stop(final Context context) {
-        final List<MPDServer> servers = Utils.getMPDServers(context);
-
+    public static void Stop(Context context) {
+        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
+        final String mpd_hostname = sharedPref.getString("mpd_hostname", "").trim();
+        final int mpd_port = StringToInt(sharedPref.getString("mpd_port", "6600"), 6600);
         new Thread(new Runnable() {
             @Override
             public void run() {
-                for (MPDServer server: servers) {
-                    if(server.selected) {
-                        final String mpd_hostname = server.hostname.trim();
-                        final int mpd_port = server.port;
-
-                        StopInternal(mpd_hostname, mpd_port);
-                        break;
-                    }
-                }
+                StopInternal(mpd_hostname, mpd_port);
             }
         }).start();
     }
 
     private static boolean StopInternal(String mpd_hostname, int mpd_port) {
         Boolean result = false;
-        isPlaying = false;
+
         try {
-            if(BuildConfig.DEBUG) { Log.d(TAG, "Check connection before stop..."); }
-            Socket s = new Socket();
-            s.connect(new InetSocketAddress(mpd_hostname, mpd_port), 15*1000);
+            if(BuildConfig.DEBUG) { Log.d(TAG, "Check connection..."); }
+            Socket s = new Socket(mpd_hostname, mpd_port);
             BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
             String info = reader.readLine();
@@ -204,19 +166,17 @@ public class MPDClient {
         return result;
     }
 
-    public static void StopDiscovery(IMPDClientStatusChange listener){
+    public static void StopDiscovery(){
         discoveryActive = false;
-        SetDiscoveredStatus(false, listener);
+        discovered = false;
         t = null;
     }
 
     private static Boolean PlayRemoteMPD(String mpd_hostname, int mpd_port, String url){
         Boolean result = false;
-        isPlaying = true;
         try {
             if(BuildConfig.DEBUG) { Log.d("MPD", "Start"); }
-            Socket s = new Socket();
-            s.connect(new InetSocketAddress(mpd_hostname, mpd_port), 5*1000);
+            Socket s = new Socket(mpd_hostname, mpd_port);
             BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
             String info = reader.readLine();
@@ -246,57 +206,6 @@ public class MPDClient {
             Log.e("MPD",e.toString());
         }
         return result;
-    }
-
-    public static void SetVolume(final String mpd_hostname, final int mpd_port, final int volume) {
-        // Volume can be +something or -something
-
-        new AsyncTask<Void, Void, Boolean>() {
-            @Override
-            protected Boolean doInBackground(Void... params) {
-                try {
-                    if(BuildConfig.DEBUG) { Log.d("MPD", "Start"); }
-                    Socket s = new Socket();
-                    s.connect(new InetSocketAddress(mpd_hostname, mpd_port), 5*1000);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(s.getInputStream()));
-                    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(s.getOutputStream()));
-                    String info = reader.readLine();
-                    if(BuildConfig.DEBUG) { Log.d("MPD", info); }
-                    if (info.startsWith("OK")){
-                        String cmd = "status";
-                        writer.write(cmd);
-                        writer.newLine();
-                        writer.flush();
-
-                        info = reader.readLine();
-                        if(BuildConfig.DEBUG) { Log.d("MPD volume", info); }
-                        if (info.startsWith("volume:")){
-                            int currentVolume = Integer.parseInt(info.substring(8).trim());
-                            int newVolume = currentVolume + volume;
-                            // Max == 100, min == 0
-                            newVolume = Math.min(newVolume,100);
-                            newVolume = Math.max(newVolume,0);
-                            cmd = "setvol "+ newVolume;
-                            writer.write(cmd);
-                            writer.newLine();
-                            writer.flush();
-                            if(BuildConfig.DEBUG) { Log.d("MPD", "OK"); }
-                        }
-                    }
-                    reader.close();
-                    writer.close();
-                    s.close();
-                } catch (Exception e) {
-                    Log.e("MPD",e.toString());
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(Boolean result) {
-                super.onPostExecute(result);
-            }
-        }.execute();
     }
 
     public static boolean Connected() {

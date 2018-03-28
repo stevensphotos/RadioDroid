@@ -1,7 +1,7 @@
 package net.programmierecke.radiodroid2;
 
+import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -9,17 +9,20 @@ import android.support.v4.app.Fragment;
 import android.support.v7.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.ListView;
 import android.widget.Toast;
+
+import net.programmierecke.radiodroid2.data.DataRadioStation;
 
 import java.util.HashMap;
 
 public class FragmentBase extends Fragment {
-    private static final String TAG = "FragmentBase";
-
+    private ProgressDialog itsProgressLoading;
+    private ListView lv;
     private String url;
     private String urlResult;
-
-    private boolean isCreated = false;
+    private DataRadioStation[] stations = new DataRadioStation[0];
+    private Context mycontext;
 
     public FragmentBase() {
     }
@@ -27,55 +30,43 @@ public class FragmentBase extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        mycontext = getActivity();
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        isCreated = true;
-
-        if (url == null) {
-            Bundle bundle = this.getArguments();
-            url = bundle.getString("url");
-        }
+        Bundle bundle = this.getArguments();
+        url = bundle.getString("url");
 
         DownloadUrl(false);
     }
 
-    protected String getUrlResult() {
+    protected String getUrlResult(){
         return urlResult;
     }
 
     public void SetDownloadUrl(String theUrl) {
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "new url " + theUrl);
-        }
+        if(BuildConfig.DEBUG) { Log.d("","new url "+theUrl); }
         url = theUrl;
         DownloadUrl(false);
     }
 
     public void DownloadUrl(final boolean forceUpdate) {
-        DownloadUrl(forceUpdate, true);
+        DownloadUrl(forceUpdate,true);
     }
 
     public void DownloadUrl(final boolean forceUpdate, final boolean displayProgress) {
-        if (!isCreated) {
-            return;
-        }
-
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getContext());
         final boolean show_broken = sharedPref.getBoolean("show_broken", false);
 
-        if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Download url:" + url);
-        }
-
+        if(BuildConfig.DEBUG) { Log.d("DOWN","Download url:"+url); }
         if (TextUtils.isGraphic(url)) {
-            String cache = Utils.getCacheFile(getActivity(), url);
+            String cache = Utils.getCacheFile(getActivity(),url);
             if (cache == null || forceUpdate) {
-                if (getContext() != null && displayProgress) {
-                    getContext().sendBroadcast(new Intent(ActivityMain.ACTION_SHOW_LOADING));
+                if (mycontext != null && displayProgress) {
+                    itsProgressLoading = ProgressDialog.show(mycontext, "", getActivity().getString(R.string.progress_loading));
                 }
                 new AsyncTask<Void, Void, String>() {
                     @Override
@@ -90,15 +81,13 @@ public class FragmentBase extends Fragment {
                     @Override
                     protected void onPostExecute(String result) {
                         DownloadFinished();
-                        if(getContext() != null)
-                            getContext().sendBroadcast(new Intent(ActivityMain.ACTION_HIDE_LOADING));
-                        if (BuildConfig.DEBUG) {
-                            Log.d(TAG, "Download url finished:" + url);
+                        if (itsProgressLoading != null) {
+                            itsProgressLoading.dismiss();
+                            itsProgressLoading = null;
                         }
+                        if(BuildConfig.DEBUG) { Log.d("DOWN", "Download url finished:" + url); }
                         if (result != null) {
-                            if (BuildConfig.DEBUG) {
-                                Log.d(TAG, "Download url OK:" + url);
-                            }
+                            if(BuildConfig.DEBUG) { Log.d("DOWN", "Download url OK:" + url); }
                             urlResult = result;
                             RefreshListGui();
                         } else {
@@ -108,20 +97,19 @@ public class FragmentBase extends Fragment {
                         super.onPostExecute(result);
                     }
                 }.execute();
-            } else {
+            }else{
                 urlResult = cache;
-                DownloadFinished();
                 RefreshListGui();
-
+                DownloadFinished();
             }
-        } else {
+        }else{
             RefreshListGui();
         }
     }
 
-    protected void RefreshListGui() {
+    protected void RefreshListGui(){
     }
 
-    protected void DownloadFinished() {
+    protected void DownloadFinished(){
     }
 }

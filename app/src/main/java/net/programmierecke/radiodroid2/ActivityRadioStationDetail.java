@@ -2,6 +2,7 @@ package net.programmierecke.radiodroid2;
 
 import java.util.Locale;
 
+import android.app.ProgressDialog;
 import android.app.TimePickerDialog;
 import android.content.Intent;
 import android.net.Uri;
@@ -21,12 +22,12 @@ import android.widget.TimePicker;
 import net.programmierecke.radiodroid2.data.DataRadioStation;
 
 public class ActivityRadioStationDetail extends AppCompatActivity implements TimePickerDialog.OnTimeSetListener {
+	private ProgressDialog itsProgressLoading;
 	private DataRadioStation itsStation;
 	private MenuItem m_Menu_Star;
 	private MenuItem m_Menu_UnStar;
 	private Menu m_Menu;
 	private String stationId;
-	private FavouriteManager favouriteManager;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -40,18 +41,15 @@ public class ActivityRadioStationDetail extends AppCompatActivity implements Tim
 		final String aStationID = anExtras.getString("stationid");
 		stationId = aStationID;
 
-		RadioDroidApp radioDroidApp = (RadioDroidApp) getApplication();
-		favouriteManager = radioDroidApp.getFavouriteManager();
-
 		PlayerServiceUtil.bind(this);
 
 		UpdateMenu();
 
-		getApplicationContext().sendBroadcast(new Intent(ActivityMain.ACTION_SHOW_LOADING));
+		itsProgressLoading = ProgressDialog.show(ActivityRadioStationDetail.this, "", getResources().getText(R.string.progress_loading));
 		new AsyncTask<Void, Void, String>() {
 			@Override
 			protected String doInBackground(Void... params) {
-				return Utils.downloadFeed(getApplicationContext(), RadioBrowserServerManager.getWebserviceEndpoint(getApplicationContext(), String.format(Locale.US, "json/stations/byid/%s", aStationID)),true,null);
+				return Utils.downloadFeed(getApplicationContext(), String.format(Locale.US, "https://www.radio-browser.info/webservice/json/stations/byid/%s", aStationID),true,null);
 			}
 
 			@Override
@@ -64,7 +62,7 @@ public class ActivityRadioStationDetail extends AppCompatActivity implements Tim
 						}
 					}
 				}
-				getApplicationContext().sendBroadcast(new Intent(ActivityMain.ACTION_HIDE_LOADING));
+				itsProgressLoading.dismiss();
 				super.onPostExecute(result);
 			}
 
@@ -72,12 +70,14 @@ public class ActivityRadioStationDetail extends AppCompatActivity implements Tim
 	}
 
 	void UpdateMenu() {
+		FavouriteManager fm = new FavouriteManager(getApplicationContext());
+
 		if (stationId != null) {
 			if (m_Menu_Star != null) {
-				m_Menu_Star.setVisible(!favouriteManager.has(stationId));
+				m_Menu_Star.setVisible(!fm.has(stationId));
 			}
 			if (m_Menu_UnStar != null) {
-				m_Menu_UnStar.setVisible(favouriteManager.has(stationId));
+				m_Menu_UnStar.setVisible(fm.has(stationId));
 			}
 		} else {
 			if (m_Menu_Star != null) {
@@ -129,7 +129,8 @@ public class ActivityRadioStationDetail extends AppCompatActivity implements Tim
 
 	private void UnStar() {
 		if (itsStation != null) {
-			favouriteManager.remove(itsStation.ID);
+			FavouriteManager fm = new FavouriteManager(getApplicationContext());
+			fm.remove(itsStation.ID);
 			UpdateMenu();
 		}else{
 			Log.e("ABC","empty station info");
@@ -138,7 +139,8 @@ public class ActivityRadioStationDetail extends AppCompatActivity implements Tim
 
 	private void Star() {
 		if (itsStation != null) {
-			favouriteManager.add(itsStation);
+			FavouriteManager fm = new FavouriteManager(getApplicationContext());
+			fm.add(itsStation);
 			UpdateMenu();
 		}else{
 			Log.e("ABC","empty station info");
@@ -185,7 +187,7 @@ public class ActivityRadioStationDetail extends AppCompatActivity implements Tim
 
 		TextView aTextViewTags = (TextView) findViewById(R.id.detail_station_tags_value);
 		if (aTextViewTags != null) {
-			aTextViewTags.setText(dataRadioStation.TagsAll.replace(",", ", "));
+			aTextViewTags.setText(dataRadioStation.TagsAll);
 		}
 
 		TextView aTextViewWWW = (TextView) findViewById(R.id.detail_station_www_value);
