@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!-- Your normal content view -->
+<<<<<<< HEAD
 <LinearLayout xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     xmlns:android="http://schemas.android.com/apk/res/android">
+=======
+<LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="vertical"
+        xmlns:android="http://schemas.android.com/apk/res/android">
+>>>>>>> segler-alex/master
 
     <!-- We use a Toolbar so that our drawer can be displayed
      in front of the action bar -->
@@ -18,8 +28,24 @@
         android:elevation="6dp"
         android:minHeight="?attr/actionBarSize"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+<<<<<<< HEAD
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
         tools:ignore="UnusedAttribute" />
+=======
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+
+        <ProgressBar
+                android:id="@+id/progressBarLoading"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_marginLeft="22dp"
+                android:layout_marginStart="22dp"
+                android:indeterminate="true"
+                android:theme="@style/ProgressBarCircle"
+                android:visibility="gone"/>
+
+    </android.support.v7.widget.Toolbar>
+>>>>>>> segler-alex/master
 
     <android.support.v7.app.MediaRouteButton
         android:id="@+id/media_route_button"
@@ -37,6 +63,8 @@
         android:layout_height="match_parent"
         android:layout_width="match_parent"
         android:id="@+id/drawerLayout"
+        android:layout_weight="0.5"
+        android:background="?android:attr/windowBackground"
         >
 
         <!-- The rest of your content view -->
@@ -55,15 +83,39 @@
             android:layout_height="match_parent"
             android:layout_gravity="start"
             android:id="@+id/my_navigation_view"
+            app:itemTextColor="@color/menu_text_color"
+            app:itemIconTint="@color/menu_text_color"
             app:menu="@menu/menu_drawer"
             android:layout_marginTop="0dp"
+            android:background="?android:attr/windowBackground"
             />
 
 
     </android.support.v4.widget.DrawerLayout>
 
 
+<<<<<<< HEAD
 
 </LinearLayout>
 
 
+=======
+    <RelativeLayout
+            android:id="@+id/playerView"
+            android:layout_width="match_parent"
+            android:layout_height="?android:attr/actionBarSize">
+    </RelativeLayout>
+
+    <android.support.design.widget.BottomNavigationView
+            android:id="@+id/bottom_navigation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:background="?attr/menuBottomBackgroundColor"
+            app:itemBackground="?attr/selectableItemBackgroundBorderless"
+            app:itemTextColor="@color/menu_bottom_text_color"
+            app:itemIconTint="@color/menu_bottom_text_color"
+            app:menu="@menu/menu_bottom_navigation" />
+
+</LinearLayout>
+>>>>>>> segler-alex/master

@@ -8,8 +8,12 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
+import android.media.audiofx.AudioEffect;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.CountDownTimer;
@@ -18,19 +22,29 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.res.ResourcesCompat;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
+import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
+import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.MediaButtonReceiver;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
+import android.support.v7.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
+import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
+
 import net.programmierecke.radiodroid2.data.ShoutcastInfo;
-import net.programmierecke.radiodroid2.players.ExoPlayerWrapper;
-import net.programmierecke.radiodroid2.players.MediaPlayerWrapper;
+import net.programmierecke.radiodroid2.data.StreamLiveInfo;
 import net.programmierecke.radiodroid2.players.RadioPlayer;
+import net.programmierecke.radiodroid2.recording.RecordingsManager;
+import net.programmierecke.radiodroid2.recording.RunningRecordingInfo;
 
 public class PlayerService extends Service implements RadioPlayer.PlayerListener {
     protected static final int NOTIFY_ID = 1;
@@ -45,14 +59,17 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     private final String ACTION_RESUME = "resume";
     private final String ACTION_STOP = "stop";
 
-    private final float FULL_VOLUME = 100f;
-    private final float DUCK_VOLUME = 40f;
+    private static final float FULL_VOLUME = 100f;
+    private static final float DUCK_VOLUME = 40f;
 
     private Context itsContext;
 
     private String currentStationID;
     private String currentStationName;
     private String currentStationURL;
+    private String currentStationIconUrl;
+
+    private BitmapDrawable radioIcon;
 
     private RadioPlayer radioPlayer;
 
@@ -69,7 +86,7 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     private CountDownTimer timer;
     private long seconds = 0;
 
-    private Map<String, String> liveInfo;
+    private StreamLiveInfo liveInfo = new StreamLiveInfo(null);
     private ShoutcastInfo streamInfo;
 
     private boolean isHls = false;
@@ -81,9 +98,14 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     }
 
     private final IPlayerService.Stub itsBinder = new IPlayerService.Stub() {
+        // This method exist because we need to set information about current radio station
+        // and then use it in playerFragment when MPD player is working.
+        public void SaveInfo(String theUrl, String theName, String theID, String theIconUrl) {
+            PlayerService.this.saveInfo(theUrl, theName, theID, theIconUrl);
+        }
 
-        public void Play(String theUrl, String theName, String theID, boolean isAlarm) throws RemoteException {
-            PlayerService.this.playUrl(theUrl, theName, theID, isAlarm);
+        public void Play(boolean isAlarm) throws RemoteException {
+            PlayerService.this.playUrl(isAlarm);
         }
 
         public void Pause() throws RemoteException {
@@ -124,7 +146,12 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         }
 
         @Override
-        public Map getMetadataLive() throws RemoteException {
+        public String getStationIconUrl() throws RemoteException {
+            return currentStationIconUrl;
+        }
+
+        @Override
+        public StreamLiveInfo getMetadataLive() throws RemoteException {
             return PlayerService.this.liveInfo;
         }
 
@@ -190,7 +217,11 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         @Override
         public void startRecording() throws RemoteException {
             if (radioPlayer != null) {
-                radioPlayer.startRecording(currentStationName);
+                RadioDroidApp radioDroidApp = (RadioDroidApp) getApplication();
+                RecordingsManager recordingsManager = radioDroidApp.getRecordingsManager();
+
+                recordingsManager.record(PlayerService.this, radioPlayer);
+
                 sendBroadCast(PLAYER_SERVICE_META_UPDATE);
             }
         }
@@ -198,7 +229,11 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         @Override
         public void stopRecording() throws RemoteException {
             if (radioPlayer != null) {
-                radioPlayer.stopRecording();
+                RadioDroidApp radioDroidApp = (RadioDroidApp) getApplication();
+                RecordingsManager recordingsManager = radioDroidApp.getRecordingsManager();
+
+                recordingsManager.stopRecording(radioPlayer);
+
                 sendBroadCast(PLAYER_SERVICE_META_UPDATE);
             }
         }
@@ -211,7 +246,13 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         @Override
         public String getCurrentRecordFileName() throws RemoteException {
             if (radioPlayer != null) {
-                return radioPlayer.getRecordFileName();
+                RadioDroidApp radioDroidApp = (RadioDroidApp) getApplication();
+                RecordingsManager recordingsManager = radioDroidApp.getRecordingsManager();
+
+                RunningRecordingInfo info = recordingsManager.getRecordingInfo(radioPlayer);
+                if (info != null) {
+                    return info.getFileName();
+                }
             }
             return null;
         }
@@ -219,7 +260,7 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         @Override
         public long getTransferredBytes() throws RemoteException {
             if (radioPlayer != null) {
-                return radioPlayer.getRecordedBytes();
+                return radioPlayer.getCurrentPlaybackTransferredBytes();
             }
             return 0;
         }
@@ -230,18 +271,33 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         public boolean onMediaButtonEvent(Intent mediaButtonEvent) {
             final KeyEvent event = mediaButtonEvent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
 
-            if (event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
-                switch (event.getKeyCode()) {
-                    case KeyEvent.KEYCODE_MEDIA_PAUSE:
+            if (event.getKeyCode() == KeyEvent.KEYCODE_HEADSETHOOK) {
+                if (event.getAction() == KeyEvent.ACTION_UP && !event.isLongPress()) {
+                    if (PlayerServiceUtil.isPlaying()) {
                         PlayerServiceUtil.pause();
-                        break;
-                    case KeyEvent.KEYCODE_MEDIA_PLAY:
+                    } else {
                         PlayerServiceUtil.resume();
-                        break;
+                    }
                 }
+                return true;
+            } else {
+                return super.onMediaButtonEvent(mediaButtonEvent);
             }
+        }
 
-            return true;
+        @Override
+        public void onPause() {
+            PlayerServiceUtil.pause();
+        }
+
+        @Override
+        public void onPlay() {
+            PlayerServiceUtil.resume();
+        }
+
+        @Override
+        public void onStop() {
+            PlayerServiceUtil.stop();
         }
     };
 
@@ -335,15 +391,9 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         timer = null;
         powerManager = (PowerManager) itsContext.getSystemService(Context.POWER_SERVICE);
         audioManager = (AudioManager) itsContext.getSystemService(Context.AUDIO_SERVICE);
+        radioIcon = ((BitmapDrawable) ResourcesCompat.getDrawable(getResources(), R.drawable.ic_launcher, null));
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            radioPlayer = new RadioPlayer(PlayerService.this, new ExoPlayerWrapper());
-        } else {
-            // use old MediaPlayer on API levels < 16
-            // https://github.com/google/ExoPlayer/issues/711
-            radioPlayer = new RadioPlayer(PlayerService.this, new MediaPlayerWrapper());
-        }
-
+        radioPlayer = new RadioPlayer(PlayerService.this);
         radioPlayer.setPlayerListener(this);
     }
 
@@ -380,12 +430,18 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         return super.onStartCommand(intent, flags, startId);
     }
 
-    public void playUrl(String theURL, String theName, String theID, final boolean isAlarm) {
-        Log.i(TAG, String.format("playing url '%s'.", theURL));
-
+    public void saveInfo(String theURL, String theName, String theID, String theIconUrl) {
         currentStationID = theID;
         currentStationName = theName;
         currentStationURL = theURL;
+        currentStationIconUrl = theIconUrl;
+    }
+
+    public void playUrl(final boolean isAlarm) {
+        Log.i(TAG, String.format("playing url '%s'.", currentStationURL));
+
+        if (Utils.shouldLoadIcons(itsContext))
+            downloadRadioIcon();
 
         int result = acquireAudioFocus();
         if (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
@@ -420,7 +476,7 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
 
         resumeOnFocusGain = false;
 
-        liveInfo = null;
+        liveInfo = new StreamLiveInfo(null);
         streamInfo = null;
 
         releaseAudioFocus();
@@ -437,12 +493,12 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     public void replayCurrent(final boolean isAlarm) {
         if (BuildConfig.DEBUG) Log.d(TAG, "replaying current.");
 
-        liveInfo = null;
+        liveInfo = new StreamLiveInfo(null);
         streamInfo = null;
 
         acquireWakeLockAndWifiLock();
 
-        radioPlayer.play(currentStationURL, isAlarm);
+        radioPlayer.play(currentStationURL, currentStationName, isAlarm);
     }
 
     private void setMediaPlaybackState(int state) {
@@ -561,7 +617,7 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     }
 
     private void sendMessage(String theTitle, String theMessage, String theTicker) {
-        Intent notificationIntent = new Intent(itsContext, ActivityPlayerInfo.class);
+        Intent notificationIntent = new Intent(itsContext, ActivityMain.class);
         notificationIntent.putExtra("stationid", currentStationID);
         notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
@@ -577,9 +633,9 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
                 .setWhen(System.currentTimeMillis())
                 .setTicker(theTicker)
                 .setOngoing(true)
-                .setSmallIcon(R.drawable.ic_play_arrow_24dp)
-                .setLargeIcon((((BitmapDrawable) ResourcesCompat.getDrawable(getResources(), R.drawable.ic_launcher, null)).getBitmap()))
-                .addAction(R.drawable.ic_stop_24dp, "Stop", pendingIntentStop);
+                .setSmallIcon(R.drawable.ic_play_arrow_white_24dp)
+                .setLargeIcon(radioIcon.getBitmap())
+                .addAction(R.drawable.ic_stop_white_24dp, getString(R.string.action_stop), pendingIntentStop);
 
         RadioPlayer.PlayState currentPlayerState = radioPlayer.getPlayState();
 
@@ -588,14 +644,14 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
             pauseIntent.setAction(ACTION_PAUSE);
             PendingIntent pendingIntentPause = PendingIntent.getService(itsContext, 0, pauseIntent, 0);
 
-            notificationBuilder.addAction(R.drawable.ic_pause_24dp, "Pause", pendingIntentPause);
+            notificationBuilder.addAction(R.drawable.ic_pause_white_24dp, getString(R.string.action_pause), pendingIntentPause);
             notificationBuilder.setUsesChronometer(true);
         } else if (currentPlayerState == RadioPlayer.PlayState.Paused) {
             Intent resumeIntent = new Intent(itsContext, PlayerService.class);
             resumeIntent.setAction(ACTION_RESUME);
             PendingIntent pendingIntentResume = PendingIntent.getService(itsContext, 0, resumeIntent, 0);
 
-            notificationBuilder.addAction(R.drawable.ic_play_arrow_24dp, "Resume", pendingIntentResume);
+            notificationBuilder.addAction(R.drawable.ic_play_arrow_white_24dp, getString(R.string.action_resume), pendingIntentResume);
             notificationBuilder.setUsesChronometer(false);
         }
 
@@ -616,32 +672,32 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     }
 
     private void updateNotification() {
-        switch (radioPlayer.getPlayState()) {
+        updateNotification(radioPlayer.getPlayState());
+    }
+
+    private void updateNotification(RadioPlayer.PlayState playState) {
+        switch (playState) {
             case Idle:
-                break;
-            case CreateProxy:
-                sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_start_proxy), itsContext.getResources().getString(R.string.notify_start_proxy));
-                break;
-            case ClearOld:
-                sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_stop_player), itsContext.getResources().getString(R.string.notify_stop_player));
-                break;
-            case PrepareStream:
-                sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_prepare_stream), itsContext.getResources().getString(R.string.notify_prepare_stream));
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+                notificationManager.cancel(NOTIFY_ID);
                 break;
             case PrePlaying:
-                sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_try_play), itsContext.getResources().getString(R.string.notify_try_play));
+                sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_pre_play), itsContext.getResources().getString(R.string.notify_pre_play));
                 break;
             case Playing:
-                if (liveInfo != null) {
-                    String title = liveInfo.get("StreamTitle");
-                    if (!TextUtils.isEmpty(title)) {
-                        if (BuildConfig.DEBUG) Log.d(TAG, "update message:" + title);
-                        sendMessage(currentStationName, title, title);
-                    } else {
-                        sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_play), currentStationName);
-                    }
+                final String title = liveInfo.getTitle();
+                if (!TextUtils.isEmpty(title)) {
+                    if (BuildConfig.DEBUG) Log.d(TAG, "update message:" + title);
+                    sendMessage(currentStationName, title, title);
                 } else {
                     sendMessage(currentStationName, itsContext.getResources().getString(R.string.notify_play), currentStationName);
+                }
+
+                if (mediaSession != null) {
+                    final MediaMetadataCompat.Builder builder = new MediaMetadataCompat.Builder();
+                    builder.putString(MediaMetadataCompat.METADATA_KEY_ARTIST, liveInfo.getArtist());
+                    builder.putString(MediaMetadataCompat.METADATA_KEY_TITLE, liveInfo.getTrack());
+                    mediaSession.setMetadata(builder.build());
                 }
                 break;
             case Paused:
@@ -650,8 +706,44 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
         }
     }
 
+    private void downloadRadioIcon() {
+        final float px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 70, getResources().getDisplayMetrics());
+
+        if (currentStationIconUrl == null) return;
+        if (currentStationIconUrl.trim().equals("")) return;
+
+        Picasso.with(getApplicationContext())
+                .load(currentStationIconUrl)
+                .resize((int) px, 0)
+                .into(new Target() {
+                    @Override
+                    public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                        final boolean useCircularIcons = Utils.useCircularIcons(itsContext);
+                        if (!useCircularIcons)
+                            radioIcon = new BitmapDrawable(getResources(), bitmap);
+                        else {
+                            // Icon is not circular with this code. So we need to create custom notification view and then use RoundedBitmapDrawable there
+                            RoundedBitmapDrawable rb = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
+                            rb.setCircular(true);
+                            radioIcon = new BitmapDrawable(getResources(), rb.getBitmap());
+                        }
+                        updateNotification();
+                    }
+
+                    @Override
+                    public void onBitmapFailed(Drawable errorDrawable) {
+
+                    }
+
+                    @Override
+                    public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+                    }
+                });
+    }
+
     @Override
-    public void onStateChanged(final RadioPlayer.PlayState state) {
+    public void onStateChanged(final RadioPlayer.PlayState state, final int audioSessionId) {
         // State changed can be called from the player's thread.
 
         Handler h = new Handler(itsContext.getMainLooper());
@@ -663,22 +755,49 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
                     case Paused:
                         setMediaPlaybackState(PlaybackStateCompat.STATE_PAUSED);
                         break;
-                    case Playing:
+                    case Playing: {
                         setMediaPlaybackState(PlaybackStateCompat.STATE_PLAYING);
 
                         createMediaSession();
                         mediaSession.setActive(true);
+
+                        if (BuildConfig.DEBUG) {
+                            Log.d(TAG, "Open audio effect control session, session id=" + audioSessionId);
+                        }
+
+                        Intent i = new Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION);
+                        i.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId);
+                        i.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, getPackageName());
+                        sendBroadcast(i);
                         break;
-                    default:
+                    }
+                    default: {
                         setMediaPlaybackState(PlaybackStateCompat.STATE_NONE);
 
                         if (mediaSession != null) {
                             mediaSession.setActive(false);
                         }
+
+                        if (audioSessionId > 0) {
+                            if (BuildConfig.DEBUG) {
+                                Log.d(TAG, "Close audio effect control session, session id=" + audioSessionId);
+                            }
+
+                            Intent i = new Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
+                            i.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionId);
+                            i.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, getPackageName());
+                            sendBroadcast(i);
+                        }
+
+                        if (state == RadioPlayer.PlayState.Idle) {
+                            stop();
+                        }
+
                         break;
+                    }
                 }
 
-                updateNotification();
+                updateNotification(state);
             }
         });
     }
@@ -686,6 +805,11 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     @Override
     public void onPlayerError(int messageId) {
         toastOnUi(messageId);
+    }
+
+    @Override
+    public void onBufferedTimeUpdate(long bufferedMs) {
+
     }
 
     @Override
@@ -712,12 +836,13 @@ public class PlayerService extends Service implements RadioPlayer.PlayerListener
     }
 
     @Override
-    public void foundLiveStreamInfo(Map<String, String> liveInfo) {
+    public void foundLiveStreamInfo(StreamLiveInfo liveInfo) {
         this.liveInfo = liveInfo;
 
         if (BuildConfig.DEBUG) {
-            for (String key : liveInfo.keySet()) {
-                Log.i(TAG, "INFO:" + key + "=" + liveInfo.get(key));
+            Map<String, String> rawMetadata = liveInfo.getRawMetadata();
+            for (String key : rawMetadata.keySet()) {
+                Log.i(TAG, "INFO:" + key + "=" + rawMetadata.get(key));
             }
         }
 
